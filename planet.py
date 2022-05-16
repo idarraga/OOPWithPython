@@ -3,6 +3,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from ctypes import c_double, c_int, CDLL
+import sys
 
 class Planet:
     def __init__(self, name, mass, xpos, ypos, xvel, yvel) -> None:
@@ -45,6 +47,15 @@ class Planet:
     __fx = 0.
     __fy = 0.
 
+    # Public. My C interface.
+    c_list_in = np.array([1.0, 1.0, 2.0, 2.0, 1.0, 1.0])
+    c_list_n = len(c_list_in)
+    c_arr_in = (c_double * c_list_n)(*c_list_in)
+    c_arr_out = (c_double * c_list_n)()
+
+    # def fill_c_list_in(self):
+    #     c_list_in[0] = 1.0
+
     def getDistance(self, otherPlanet) -> float:
         xdelta = otherPlanet.getX() - self.__xpos
         ydelta = otherPlanet.getY() - self.__ypos
@@ -76,6 +87,33 @@ class Planet:
         self.__fx += -1.*cos_theta*GRAV_CNST * self.__mass * otherPlanet.getMass() / dist**2
         self.__fy += -1.*sin_theta*GRAV_CNST * self.__mass * otherPlanet.getMass() / dist**2
 
+        ## self.c_list_in[0] = self.__xpos
+        ## self.c_list_in[1] = otherPlanet.getX() 
+        ## self.c_list_in[2] = self.__ypos
+        ## self.c_list_in[3] = otherPlanet.getY()
+        ## self.c_list_in[4] = self.__mass
+        ## self.c_list_in[5] = otherPlanet.getMass()
+        ## self.c_arr_in = (c_double * self.c_list_n)(*self.c_list_in)
+        # python_calc_force(
+        #     c_double(self.__xpos),
+        #     c_double(otherPlanet.getX()),
+        #     c_double(self.__ypos),
+        #     c_double(otherPlanet.getY()),
+        #     c_double(self.__mass),
+        #     c_double(otherPlanet.getMass()),
+        #     self.c_arr_out)
+        # self.__fx += self.c_arr_out[0]
+        # self.__fy += self.c_arr_out[1]
+
+lib_path = 'c_interface/calc_force_%s.so' % (sys.platform)
+try:
+    basic_function_lib = CDLL(lib_path)
+except:
+    print('OS %s not recognized' % (sys.platform))
+
+python_calc_force = basic_function_lib.calc_force
+python_calc_force.restype = None
+
 # Initial conditions
 # All masses in Jupiter masses.
 # Positions in astronomical units.
@@ -102,8 +140,9 @@ solarSystem = [sun, jupiter, earth]
 
 # Integration controls. Time in earth hours
 t_start = 0.0
-t_stop = 100000
-t_num = 1000
+t_stop = 1000000
+t_num = 100000
+# for a nice profiling test try: stop: 1000000, num: 100000
 delta_t = float((t_stop - t_start)/t_num)
 time_vector = np.linspace(t_start, t_stop, t_num)
 
@@ -115,7 +154,7 @@ plot_vectors = {
 print("--- Start integration: delta_t = %s"%delta_t)
 for t in time_vector:
      for idx, planet_pivot in enumerate(solarSystem):
-        print("--- %s ---- t: %s ---------"%(planet_pivot.getName(),t))
+        #print("--- %s ---- t: %s ---------"%(planet_pivot.getName(),t))
         planet_pivot.zeroForce()
         for idx2, planet_force in enumerate(solarSystem):
             if (idx != idx2) :
@@ -124,11 +163,11 @@ for t in time_vector:
         #print("  fx, fy : %s, %s"%(round(planet_pivot.getForceX(), 2), round(planet_pivot.getForceY(), 2)))
         planet_pivot.euler_method(delta_t)
         if ( "Jupiter" in planet_pivot.getName() ):
-            planet_pivot.printPosition()
+            #planet_pivot.printPosition()
             plot_vectors[jupiter][0].append( planet_pivot.getX() )
             plot_vectors[jupiter][1].append( planet_pivot.getY() )
         if ( "Earth" in planet_pivot.getName() ):
-            planet_pivot.printPosition()
+            #planet_pivot.printPosition()
             plot_vectors[earth][0].append( planet_pivot.getX() )
             plot_vectors[earth][1].append( planet_pivot.getY() )
 
