@@ -75,7 +75,7 @@ class Planet:
     def calcForce(self, otherPlanet):
 
         dist = self.getDistance(otherPlanet)
-        distX = self.getX() - otherPlanet.getX() 
+        distX = self.getX() - otherPlanet.getX()
         distY = self.getY() - otherPlanet.getY()
 
         #print("calcForce on the %s due to %s | dX=%s dY=%s d=%s"%(self.__name, otherPlanet.getName(), distX, distY, dist))
